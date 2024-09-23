@@ -1,0 +1,236 @@
+Chapter2: The Basics of Crawler
+2.1 Getting to Know HTTP Requests
+2.1.1 The Meaning of HTTP Requests
+1.HTTP Requests == request messages from the client to the server.
+
+2.The Flow of Web Services == issuing a request to the server first, then the server responses, finally the connection is shut down.
+
+2.1.2 Request Messages of HTTP
+1.When the browser issues a request message to the Web server, it actually issues a data block which is called "Request Message" to it.
+
+2.Request Message of HTTP consists of Request Method, Request Header and Request Main Text.
+(1)Request Method
+[1]Get == requests the specified page information and returns the entity body.
+
+[2]POST == submits data to a specified resource to process the request (e.g., submit a form or upload a file), which is included in the request body. May result in the creation of a new resource or the modification of an existing resource.
+
+* The GET method is used to open a web page, i.e., a page is requested; the POST method is used if it involves providing data to the site (e.g., logging in).
+
+(2)Request Header
+[1]Request Header == includes much useful information about client environment and request main text.
+
+* The most common anti-crawler measure used by web servers is to read the User Agent information in the request header to determine whether the request is coming from a normal browser or a crawler.
+
+?How to inspect the request header of the browser?
+Right-click and select “inspect” or "view element".
+
+* The requested Headers are in a DICTIONARY-like format, which includes the information of User Agent.
+
+2.2 Crawler Basics - Getting Started with the Requests Library
+2.2.2 Requests library's request methods
+Step1: Import Request lib:
+>>>import requests
+
+Step2: If you want to get the Douban home page:
+>>>response = requests.get('https//www.douban.com/')
+
+In that way we get the Douban home page and assign the response to variable "response".
+
+2.2.3 Response for the Requests Library
+1.After using request method of Requests, the system will return an object: response, which stores the text of response from the system.
+
+2.We can use "response.text" to get the text of the response.
+
+3.When we access "response.text", Requests will use its inferred text encoding based on the HTTP header
+
+* The way to find the encoding Requests uses: >>>response.encoding
+
+* If we change the encoding, every time we access "response.text", Requests will use the new value assigned to "response.encoding". We can also use "response.content" to find the source code of the web page to find its encoding. "response.content" accesses the request response body in bytes.
+
+2.2.4 HTTP Status Code
+1.HTTP Status Code == a 3-digit code used to indicate the status of a web server's HTTP response.
+
+2.The way to check the HTTP Status Code:
+>>>response.status_code
+
+3.Common HTTP status codes and their meanings
+(1)200 - the request was successful; 
+(2)301 - the resource (web page, etc.) was permanently transferred to another URL; 
+(3)404 - the requested resource (web page, etc.) does not exist; 
+(4)500 - internal server error.
+
+4.By determining whether the HTTP status code is equal to "request.codes.ok", we can determine whether the resource was correctly fetched or not.
+>>>response.status_code == requests.codes.ok
+
+2.2.5 Customizing Request Headers
+1.The way to add HTTP headers to a request to masquerade as a normal browser:
+Pass a dict of the User Agent to the headers parameter.
+
+2.The way to view the request headers set:
+>>>r.request.headers
+And the value of the User-Agent item in the result is the user agent set.
+
+2.2.6 Redirection and Timeout
+1.By default, Requests automatically handles all redirects except for the HEAD request method.
+
+2.Use the History method of the response object to track redirections
+
+For example, accessing http://www.douban.com/ will be redirected to https://www.douban.com/
+>>>r = response.get('http://www.douban.com/')
+>>>r.history
+[<Response [301]>]
+What is returned here is a list, which is a list of response objects that were created to fulfill the request. The list of objects is sorted by oldest to newest request, and the actual request URL can be viewed using "r.url".
+
+For example:
+>>>r.url
+'https://www.douban.com/'
+
+3.Sometimes the server may not respond, we can tell Requests to stop waiting for a response after a period of seconds set with the timeout parameter, if not, the program may keep waiting for a response.
+
+For example, this sentence means that if you don't receive a response from the Douban server within 3 seconds, a timeout exception will be thrown.
+>>>requests.get('https://www.douban.com/', timeout=3)
+
+2.2.7 Passing the URL parameter
+1.Many times websites pass some kind of data through the query string of a URL.
+
+For example, if we search for the keyword “python” in Douban's search box, we will find that the URL changes to the following form:
+https://www.douban.com/search?q=python
+Here, the query data is placed in the URL as a "key/value pair" (q=python) following after a "?" in the URL.
+
+2.Requests allows the "params" parameter to be used to provide these parameters as a dictionary of strings.
+
+For example, if you want to look up python-related content in the books section of Douban, you can pass q=python and cat=1001 to https://www.douban.com/search:
+-------------------------------------------------------------------------------------------------------------------
+>>>payload = {'q': 'python', 'cat': '1001'}
+>>>r = requests.get('https://www.douban.com/search', params=payload)
+>>>print(r.url)
+https://www.douban.com/search?q=python&cat=1001
+-------------------------------------------------------------------------------------------------------------------
+
+2.3 Crawler Basics - urllib Basics
+2.3.1 Introduction to the urllib Library
+1.urllib contains 4 modules:
+urllib.request: open and read the URL; 
+urllib.error: contains urllib.request a variety of error modules; 
+urllib.parse: parse the URL; 
+urllib.robotparse to parse the site robots.txt file.
+
+2.3.2 Send GET Request
+1.How to Send a GET Request Using the urllib Library
+Step1: First introduce the urlopen function from the urllib.request module, use this function to send a request to the Douban home page, you will receive a binary object html.
+Step2: Use read() on this html object, get a binary response containing the content of the page.
+Step3: Print out the response or decode the response to print the text of the response.
+
+2.We Can Also Pass URL Like What We Do in Requests Library
+(1)However, unlike in Requests, we need to encode the URL to be passed.
+-------------------------------------------------------------------------------------------------------------------
+We import urllib.parse to encode the payload here:
+>>>import urllib.request
+>>>import urllib.parse
+>>>payload = {'q': 'Python', 'cat': '1001'}
+
+# We need to encode the URL to be passed here.
+>>>payload_encode = urllib.parse.urlencode(payload)
+>>>request_url = 'https://www.douban.com/search'
+
+# Build the URL of the request and add a param after URL.
+>>>request_url += '?' + payload_encode
+# After this, request_url = 'https://www.douban.com/search?q=python&cat=1001'
+
+# Launch a request.
+>>>request = urllib.request.urlopen(request_url)
+
+# Use UTF-8 to decode and print the text of response.
+>>>print(response.read().decode('utf-8'))
+-------------------------------------------------------------------------------------------------------------------
+
+3.?How to get the URL that are crawled now?
+Use geturl().
+
+For example:
+>>>print(response.geturl())
+https://www.douban.com/search?q=python&cat=1001
+
+4.?How to get the status code of the web page that is crawled now?
+Use getcode().
+
+For example:
+>>>print(response.getcode())
+200
+
+2.3.3 Simulating a Browser Sending a GET Request
+1.If you want to pretend to be the browser to send GET request, you need to use Request and add a HTTP request header to it.
+For example:
+-------------------------------------------------------------------------------------------------------------------
+>>>import urllib.request
+>>>import urllib.parse
+>>>url = 'https://www.douban.com/'
+
+# Define headers.
+>>>headers = {'User-Agent': 'Mozilla/5.0 (Windows NT \ 10.0;WOW64) AppleWebKit/537.36 (KHTML, like \ Gecko) Chrome/46.0.2490.80 Safari/537.36'}
+
+# Create a request and add headers.
+>>>request = urllib.request.Request(url, headers = headers)
+>>>response = urllib.request.urlopen(request).read()
+-------------------------------------------------------------------------------------------------------------------
+The code above first sets the web address to be crawled and the request header, then use urllib.request.Request() function to create a request by passing URL and headers, the param "headers" got a default value which is no header. After that, we use urlopen() to open the Request and open the corresponding web page.
+
+2.We can also add timeout when using urllib.request.urlopen to open the web page to set the time value for timeout.
+For example:
+-------------------------------------------------------------------------------------------------------------------
+>>>response = urllib.request.urlopen(request, timeout = 3).read()
+-------------------------------------------------------------------------------------------------------------------
+
+2.3.4 POST to Send a Request
+1.If we want to use POST to send a request, all we need to do is to pass the param "data" in bytes.
+For example:
+-------------------------------------------------------------------------------------------------------------------
+>>>from urllib import request, parse
+# We first transcode the data
+>>>post_data = parse.urlencode([('key1', 'value1'), ('key2', 'value2')])
+
+# Create a request
+>>>url = request.Request('http://httpbin.org/post')
+
+# Add headers
+>>>url.add_header('User-Agent', 'Mozilla/5.0 (Windows NT \ 10.0;WOW64) AppleWebKit/537.36 (KHTML, \ like Gecko) Chrome/46.0.2490.80 Safari/537.36')
+>>>response = request.urlopen(url, data = post_data.encode('utf-8')).read()
+-------------------------------------------------------------------------------------------------------------------
+
+2.3.5 URL Parsing
+1.urllib.parse provides several tools that can be used to conduct URL parsing for crawlers which do not exist in Requests lib.
+(1)urlparse: Split URL
+urlparse will split a normal URL into 6 parts and all that are returned are tuples. They are: scheme, netloc, path, params, query and fragment.
+For example:
+-------------------------------------------------------------------------------------------------------------------
+>>>from urllib.parse import urlparse
+>>>urlparse('https://www.douban.com/search?cat=1001&q=python')
+ParseResult(scheme='https', netloc='www.douban.com', path='/search', params='', query='cat=1001&q=python', fragment='')
+-------------------------------------------------------------------------------------------------------------------
+
+(2)urlunparse: Splicing URL
+urlunparse can splice URL, it is the reverse operation of urlparse. It can return a new URL by combining URL that has been split.
+For example:
+-------------------------------------------------------------------------------------------------------------------
+>>>from urllib.parse import urlunparse
+>>>data = ['https', 'www.douban.com', '/search', '', 'cat=1001&q=python', '']
+>>>print(urlunparse(data))
+https://www.douban.com/search?cat=1001&q=python
+-------------------------------------------------------------------------------------------------------------------
+
+(3)urljoin: Splicing 2 URLs
+urljoin can splice URLs very conveniently.
+For example:
+-------------------------------------------------------------------------------------------------------------------
+>>>from urllib.parse import urljoin
+>>>urljoin('https://www.douban.com', 'accounts/login')
+https://www.douban.com/accounts/login
+
+>>>urljoin('https://www.douban.com', '/accounts/login')
+https://www.douban.com/accounts/login
+
+>>>urljoin('https://www.douban.com/accounts/', '/accounts/login')
+https://www.douban.com/accounts/login
+-------------------------------------------------------------------------------------------------------------------
+
+We can see that urljoin can determine if there are duplicate paths between the 2 URLs and splice them together to form the correct URL. (including add "/" automatically.)
