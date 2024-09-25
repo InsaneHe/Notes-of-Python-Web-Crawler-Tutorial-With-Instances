@@ -1,1 +1,144 @@
+Chapter3: The Basics of Web Parsing
+3.1 Overview of Web Parsing
+3.1.1 Common Web Parsing Tools
+There is another common task: extract data from the HTML source code.
+
+3.1.2 Introduction to HTML Source Code
+1.HTML == a hypertext markup language, which is simply understood as a language that tags certain words and phrases to achieve a specific desired effect.
+
+2.HTML syntax format is divided into “nested” and “non-nested” two categories.
+(1)Nested Format: <tag>......</tag>;
+
+(2)Non-Nested Format: <tag>.
+
+(3)Sometimes, depending on the markup, there are markups with attribute parameters attached to them: <tag attribute=“parameter value”>.
+
+(4)Take an example page of Scrapy file server as an example to illustrate the HTML source code:
+-------------------------------------------------------------------------------------------------------------------
+<html>
+  <head>
+    <base href='http://example.com/'/>
+    <title>Example website</title>
+  </head>
+<body>
+   <div id='images'>
+    <a href='image1.html'>Name: My image 1 <br/><img src='image1_thumb.jpg'/></a>
+    <a href='image2.html'>Name: My image 2 <br/><img src='image2_thumb.jpg'/></a>
+    <a href='image3.html'>Name: My image 3 <br/><img src='image3_thumb.jpg'/></a>
+    <a href='image4.html'>Name: My image 4 <br/><img src='image4_thumb.jpg'/></a>
+    <a href='image5.html'>Name: My image 5 <br/><img src='image5_thumb.jpg'/></a>
+   </div>
+</body>
+</html>
+-------------------------------------------------------------------------------------------------------------------
+
+[1]<html></html>tag
+The context between these two tags describes the whole page.
+
+[2]The header of the HTML file
+The context between <head></head> is the header of the HTML file, among which, except for the title of the page <title>Example website</title> is shown at the beginning of the browser, the rest of the context does not show to the users directly through the browser, it has other effect.
+
+[3]The context of the main body of the page
+The context between <body></body> is the main body of a page, which is all the information that can present in the window of browser.
+
+[4]Link
+<a href="address">link name</a> creates a super link pointing to "address", which shows to be "link name".
+
+[5]<div></div>tag
+<div></div>tag is used to typesetting large HTML paragraphs.
+
+[6]</br>
+</br> a tag used to line breaks.
+
+3.2 XPath Syntax Basics
+3.2.2 XPath Syntax Basics - Finding Elements by Paths
+1.XPath == a XML path language which is the language used to determine the location of a part of the XML document, it has nodes of different types: element nodes, attribute nodes and text nodes.
+
+2.HTML's Node Tree
+                                                              --> Text: "My Link"
+                                            --> Element <a> --
+                        -->Element <body> --                  --> Attribute: href
+File --> Root Element --                    --> Element <hl> --> Text: "My Title"
+                        --> Element <head> --> Element <title> --> Text: "Document Title"
+
+3.An example:
+-------------------------------------------------------------------------------------------------------------------
+htm="""
+   <div>
+        <ul>
+            <li class="item-0"><a href="link1.html">first item</a></li>
+            <li class="item-1"><a href="link2.html">second item</a></li>
+            <li class="item-inactive"><a href="link3.html">third item</a></li>
+            <li class="item-1"><a href="link4.html">fourth item</a></li>
+            <li class="item-0"><a href="link5.html">fifth item</a></li>
+            <li class="else-0">else item</a></li>
+             another item
+        </ul>
+   </div>
+   """
+-------------------------------------------------------------------------------------------------------------------
+
+The outermost layer of this HTML source code is a pair of <div> tags; one layer inside is a pair of <ul> tags; there are six pairs of <li> tags within the <ul> tag; each of the first five pairs of <li> tags contains another pair of <a> tags.
+
+If we want to find the 1st <li> tag, we can search from the beginning: that is to say, we find <div> first, then we find <ul>, finally we find the 1st <li>.
+
+If the element or address that we want to find is unique, it can be specified directly.
+
+4.Use code to implement searching and positioning of elements:
+(1)We first use HTML source code to initialize etree.
+-------------------------------------------------------------------------------------------------------------------
+>>>selector = etree.HTML(htm)
+-------------------------------------------------------------------------------------------------------------------
+
+Then we get an Element object called selector, we can use XPath to filter it, the system will return a list of filtered results.
+
+(2)We will find all the <li> tags. XPath uses // to search from the beginning.
+-------------------------------------------------------------------------------------------------------------------
+>>>all_li = selector.xpath('//div/ul/li')
+-------------------------------------------------------------------------------------------------------------------
+
+Here we use the XPath method on the selector, an Element object, with the XPath path as the parameter.
+'//div/ul/li' can be interpreted as: we start search for <div> from the root node, then we search for the <ul> tag under <div>, finally, we find all the <li> tags under <ul>.
+
+(3)We print all the <li> tags
+-------------------------------------------------------------------------------------------------------------------
+>>>print(all_li)
+[<Element li at 0x72711c8>, <Element li at 0x7271148>, <Element li at 0x7271108>, <Element li at 0x72710c8>, <Element li at 0x7271088>, <Element li at 0x7271648>]
+-------------------------------------------------------------------------------------------------------------------
+
+This result is actually the list of all <li> tags.
+
+(4)If we want to locate the 1st <li> tag, we can write code like this:
+-------------------------------------------------------------------------------------------------------------------
+>>>li_1 = selector.xpath('//div/ul/li[1]')
+-------------------------------------------------------------------------------------------------------------------
+
+The method of pathfinding is still used here, except that the ordinal number of the <li> tag is formulated, using the form li[1], which indicates that the first <li> is extracted.
+
+!In XPath syntax, it starts at 1 instead of 0!
+
+Also, if there is only one tag, the serial number is not used in both finding and locating.
+
+(5)Now we want to extract the information in <a> tags under the 1st <li> tag, we can use text() and write code like this:
+-------------------------------------------------------------------------------------------------------------------
+>>>li_1_a_text = selector.xpath('//div/ul/li[1]/a/text()')
+>>>print(li_1_a_text)
+['first item']
+-------------------------------------------------------------------------------------------------------------------
+
+3.2.3 Finding Elements By Attributes
+For example, there is code like <li class="item-0">, here the "class" is an attribute of <li> tag.
+
+We can locate elements through attributes.
+For example, if we want to locate the 3rd <li> tag whose attribute is: class="item-inactive", we can locate it by writing these code:
+-------------------------------------------------------------------------------------------------------------------
+>>>li_3 = selector.xpath('//ul/li[@class="item-inactive"]')
+-------------------------------------------------------------------------------------------------------------------
+
+We need to use syntax like: [@class="item-inactive"]
+
+Also, as there is only one attribute in the whole HTML source code, we can locate the 3rd <li> tag from the root directory.
+-------------------------------------------------------------------------------------------------------------------
+>>>li_3 = selector.xpath('//*[@class="item-inactive"]')
+-------------------------------------------------------------------------------------------------------------------
 
