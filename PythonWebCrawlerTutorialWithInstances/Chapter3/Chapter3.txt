@@ -142,3 +142,186 @@ Also, as there is only one attribute in the whole HTML source code, we can locat
 >>>li_3 = selector.xpath('//*[@class="item-inactive"]')
 -------------------------------------------------------------------------------------------------------------------
 
+Here the * in the XPath path represents an arbitrary label.
+
+If you want to take out the text under the <a> tag inside, you can write the following code:
+-------------------------------------------------------------------------------------------------------------------
+>>>li_3_a_text = selector.xpath('//*[@class="item-inactive"]/a/text()')
+-------------------------------------------------------------------------------------------------------------------
+
+Summary: @ is followed by the attribute (e.g. href, class, etc.).
+
+3.2.4 Extracting Attribute Values
+1.Extracting attribute values == the content you want to extract is the value of an attribute in a tag.
+
+For example, to extract the value of the href attribute of the <a> tag inside the third <li>:
+-------------------------------------------------------------------------------------------------------------------
+>>>li_3_a_href = selector.xpath('//ul/li[3]/a/@href')
+-------------------------------------------------------------------------------------------------------------------
+
+Here the value of the href attribute of the <a> tag is extracted through the syntactic form @href.
+
+-------------------------------------------------------------------------------------------------------------------
+>>>all_class = selector.xpath('//li/@class')
+-------------------------------------------------------------------------------------------------------------------
+
+Here the search for <li> tag starts from the root node, but there are many <li> tags, the path does not use the serial number to indicate which <li> tag, then it represents the extraction of all the <li> tags.
+
+3.2.5 Advanced Usage of XPath
+1.Let's say we want to extract the first five <li> tags out of six <li> tags, and the first five tags are characterized by a class attribute that all start with item-, we can take advantage of that.
+
+-------------------------------------------------------------------------------------------------------------------
+>>>li_1_5 = selector.xpath('//li[starts-with(@class, "items-")]')
+-------------------------------------------------------------------------------------------------------------------
+
+Here, we can successfully locate all <li> tags whose class attribute begins with item-with by using the start-with syntax.
+
+2.If the extracted element contains sub-elements or if the extracted element is a snippet, you can continue to use XPath to find it.
+
+For example, the previous extraction of five <li> tags is essentially five code segments, because they still have <a> tag inside, you can extract the <a> tag by using the XPath method, and you can find the text content inside.
+
+-------------------------------------------------------------------------------------------------------------------
+>>>li_1_5_a_text = []
+>>>for li in li_1_5:
+>>>     li_1_5_a_text.append(li.xpath('a/text()')[0])
+-------------------------------------------------------------------------------------------------------------------
+
+Or we can quit using for loop, we can write code like this:
+-------------------------------------------------------------------------------------------------------------------
+>>>li_1_5_a_text = selector.xpath('//li[starts-with\(@class, "item-"]/a/text()')
+-------------------------------------------------------------------------------------------------------------------
+
+3.How to extract all text from a code snippet
+Suppose you want to extract all the text under each level in <ul>, but if you use the following code, you can only extract the text at the <ul> level:
+-------------------------------------------------------------------------------------------------------------------
+>>>ul_text = selector.xpath('//ul/text()')
+-------------------------------------------------------------------------------------------------------------------
+
+To extract all the text under each level in <ul>, use the following code:
+-------------------------------------------------------------------------------------------------------------------
+>>>all_text = selector.xpath('string(//ul)')
+-------------------------------------------------------------------------------------------------------------------
+
+Here we have added string() to the outside of the path, which successfully extracted all the text information in the <ul> tag, and then used text derivation to take out all the text:
+-------------------------------------------------------------------------------------------------------------------
+>>>[s.strip() for s in all_text.strip().split('\n')]
+-------------------------------------------------------------------------------------------------------------------
+
+3.3 Instance of Crawling Baidu Homepage
+Look at the relative python file.
+
+3.4 Beautiful Soup Lib and Regular Expressions
+In addition to the Lxml library, there are 2 other commonly used tools for extracting information from web pages: Beautiful Soup Lib and Regular Expressions.
+
+3.4.1 Brief Introduction of Beautiful Soup
+Beautiful Soup is a flexible and convenient Python library for web parsing, with high processing efficiency and support for multiple parsers.
+
+1.Take the previous example:
+-------------------------------------------------------------------------------------------------------------------
+htm="""
+   <div>
+        <ul>
+            <li class="item-0"><a href="link1.html">first item</a></li>
+            <li class="item-1"><a href="link2.html">second item</a></li>
+            <li class="item-inactive"><a href="link3.html">third item</a></li>
+            <li class="item-1"><a href="link4.html">fourth item</a></li>
+            <li class="item-0"><a href="link5.html">fifth item</a></li>
+            <li class="else-0">else item</a></li>
+             another item
+        </ul>
+   </div>
+   """
+-------------------------------------------------------------------------------------------------------------------
+
+We first pass the defined htm into Beautiful Soup's constructor method to get a document object soup.
+-------------------------------------------------------------------------------------------------------------------
+>>>soup = BeautifulSoup(htm, 'lxml')
+-------------------------------------------------------------------------------------------------------------------
+
+The first argument to the Beautiful Soup constructor is the HTML document to be parsed, and the second argument is the Beautiful Soup parser.
+
+3.4.2 Basic Usage of Beautiful Soup
+1.The content of the tag can be obtained using a form like soup.x (x stands for the tag name).
+
+For example:
+-------------------------------------------------------------------------------------------------------------------
+>>>print(soup.ul)
+-------------------------------------------------------------------------------------------------------------------
+
+We will get:
+-------------------------------------------------------------------------------------------------------------------
+>>>print(soup.ul)
+<ul>
+<li class="item-0"><a href="link1.html">first item</a></li>
+<li class="item-1"><a href="link2.html">second item</a></li>
+<li class="item-inactive"><a href="link3.html">third item</a></li>
+<li class="item-1"><a href="link4.html">fourth item</a></li>
+<li class="item-0"><a href="link5.html">fifth item</a></li>
+<li class="else-0">else item</a></li>
+             another item
+</ul>
+-------------------------------------------------------------------------------------------------------------------
+
+If there is more than one of the same tag in the document, the returned result is the content of the FIRST tag.
+
+For example:
+-------------------------------------------------------------------------------------------------------------------
+>>>print(soup.ul)
+<li class="item-0"><a href="link1.html">first item</a></li>
+-------------------------------------------------------------------------------------------------------------------
+
+Add .string after the label to get the text inside the label.
+
+For example:
+-------------------------------------------------------------------------------------------------------------------
+>>>print(soup.a.string)
+first item
+-------------------------------------------------------------------------------------------------------------------
+
+It can also be obtained by nesting.
+
+For example:
+-------------------------------------------------------------------------------------------------------------------
+>>>print(soup.ul.li.a.string)
+first item
+-------------------------------------------------------------------------------------------------------------------
+
+You can get the value of an attribute in the form of “tag[attribute]”.
+
+For example:
+-------------------------------------------------------------------------------------------------------------------
+>>>print(soup.ul.li.a['href'])
+link1.html
+-------------------------------------------------------------------------------------------------------------------
+
+Attributes can be obtained using the GET method.
+
+For example:
+-------------------------------------------------------------------------------------------------------------------
+>>>print(soup.ul.li.a.get['href'])
+link1.html
+-------------------------------------------------------------------------------------------------------------------
+
+* .contents can be used to put all the sub-tags into one list.
+* If we use soup.ul.children, what we get is totally the same as soup.ul.contents, but it is a iterator.
+
+3.4.3 Beautiful Soup Standard Selector
+1.find_all method == searches all child nodes of the current tag and determines if they match the conditions of the filter.
+
+For example, to get all the <a> tags, you should write the following code:
+-------------------------------------------------------------------------------------------------------------------
+>>>all_a = soup.find_all('a')
+-------------------------------------------------------------------------------------------------------------------
+
+To get the text information of the second <a> tag, the following code should be written:
+-------------------------------------------------------------------------------------------------------------------
+>>>a2_text = soup.find_all('a')[1].string
+-------------------------------------------------------------------------------------------------------------------
+
+The slicing of the list starts at 0. You can also use the attribute to position the second <a> tag:
+-------------------------------------------------------------------------------------------------------------------
+>>>a2_text = soup.find_all(attrs = {'href': "link2.html"})[0].string
+second item
+-------------------------------------------------------------------------------------------------------------------
+
+Here, the attrs parameter is used to define a dictionary parameter to search for tags containing special attributes.
